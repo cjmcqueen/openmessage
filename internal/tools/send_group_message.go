@@ -15,26 +15,21 @@ import (
 	"github.com/maxghenis/openmessage/internal/db"
 )
 
-var getOrCreateGoogleGroupConversationV2 = func(a *app.App, phones []string) (*gmproto.Conversation, error) {
+var getOrCreateGoogleGroupConversation = func(a *app.App, phones []string, name string) (*gmproto.Conversation, error) {
 	cli := a.GetClient()
 	if cli == nil {
 		return nil, fmt.Errorf(app.ErrNotConnected)
 	}
-	response, err := cli.GM.GetOrCreateConversation(&gmproto.GetOrCreateConversationRequest{
-		Numbers: app.NewContactNumbers(phones),
-	})
-	if err != nil {
-		return nil, err
-	}
-	return response.GetConversation(), nil
+	return app.GetOrCreateGoogleGroup(cli.GM, phones, name)
 }
 
 func sendGroupMessageTool(v2Enabled ...bool) mcp.Tool {
-	description := "Send a text message to a group conversation (MMS group). Creates the group if it doesn't exist."
+	description := "Send a text message to a group conversation. Creates the group if it doesn't exist: an RCS group when every member has RCS, otherwise an MMS group."
 	options := []mcp.ToolOption{
 		mcp.WithDescription(description),
 		mcp.WithString("phone_numbers", mcp.Required(), mcp.Description(`JSON array of phone numbers with country code, e.g. ["+15551234567", "+15559876543"]`)),
 		mcp.WithString("message", mcp.Required(), mcp.Description("Message text to send")),
+		mcp.WithString("group_name", mcp.Description("Title for a newly created RCS group. Ignored for MMS groups and existing groups.")),
 	}
 	if v2Requested(v2Enabled) {
 		options[0] = mcp.WithDescription(description + v2DeliveryDescription)
@@ -53,6 +48,7 @@ func sendGroupMessageHandler(a *app.App, v2Options ...*V2Dependencies) server.To
 		args := req.GetArguments()
 		phonesRaw := strArg(args, "phone_numbers")
 		message := strArg(args, "message")
+		groupName := strings.TrimSpace(strArg(args, "group_name"))
 
 		if phonesRaw == "" {
 			return errorResult("phone_numbers is required"), nil
@@ -69,7 +65,7 @@ func sendGroupMessageHandler(a *app.App, v2Options ...*V2Dependencies) server.To
 			return errorResult("phone_numbers must contain at least 2 numbers for a group message"), nil
 		}
 		if v2 != nil {
-			conv, err := getOrCreateGoogleGroupConversationV2(a, phones)
+			conv, err := getOrCreateGoogleGroupConversation(a, phones, groupName)
 			if err != nil {
 				if !a.HandleGoogleAuthExpiredError(err) {
 					a.RecordGoogleSendError(err)
@@ -90,22 +86,22 @@ func sendGroupMessageHandler(a *app.App, v2Options ...*V2Dependencies) server.To
 			return errorResult(app.ErrNotConnected), nil
 		}
 
-		convResp, err := cli.GM.GetOrCreateConversation(&gmproto.GetOrCreateConversationRequest{
-			Numbers: app.NewContactNumbers(phones),
-		})
+		conv, err := getOrCreateGoogleGroupConversation(a, phones, groupName)
 		if err != nil {
 			if !a.HandleGoogleAuthExpiredError(err) {
 				a.RecordGoogleSendError(err)
 			}
 			return errorResult(fmt.Sprintf("failed to get/create group conversation: %v", err)), nil
 		}
-
-		conv := convResp.GetConversation()
 		if conv == nil {
 			return errorResult("no conversation returned"), nil
 		}
+		if err := upsertGoogleConversation(a, conv); err != nil {
+			return errorResult(fmt.Sprintf("failed to persist conversation: %v", err)), nil
+		}
 
-		payload := app.BuildSendPayload(conv.GetConversationID(), message, "", "", nil)
+		myParticipantID, simPayload := app.ExtractSIMAndParticipant(conv)
+		payload := app.BuildSendPayload(conv.GetConversationID(), message, "", myParticipantID, simPayload)
 		resp, err := cli.GM.SendMessage(payload)
 		if err != nil {
 			if !a.HandleGoogleAuthExpiredError(err) {

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
-	"go.mau.fi/mautrix-gmessages/pkg/libgm/gmproto"
 
 	"github.com/maxghenis/openmessage/internal/app"
 )
@@ -32,20 +31,18 @@ func runLegacySendGroup(logger zerolog.Logger, phones []string, message string) 
 		return fmt.Errorf("client not connected")
 	}
 
-	convResp, err := cli.GM.GetOrCreateConversation(&gmproto.GetOrCreateConversationRequest{
-		Numbers: app.NewContactNumbers(phones),
-	})
+	conv, err := app.GetOrCreateGoogleGroup(cli.GM, phones, "")
 	if err != nil {
 		a.HandleGoogleAuthExpiredError(err)
 		return fmt.Errorf("get/create group conversation: %w", err)
 	}
 
-	conv := convResp.GetConversation()
 	if conv == nil {
 		return fmt.Errorf("no conversation returned")
 	}
 
-	payload := app.BuildSendPayload(conv.GetConversationID(), message, "", "", nil)
+	myParticipantID, simPayload := app.ExtractSIMAndParticipant(conv)
+	payload := app.BuildSendPayload(conv.GetConversationID(), message, "", myParticipantID, simPayload)
 	_, err = cli.GM.SendMessage(payload)
 	if err != nil {
 		a.HandleGoogleAuthExpiredError(err)

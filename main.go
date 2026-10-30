@@ -35,7 +35,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "  threads [--limit N] [--json]             - List recent conversations (find an id/name for thread)")
 		fmt.Fprintln(os.Stderr, "  status [--json]                          - Show per-platform message counts and sync freshness")
 		fmt.Fprintln(os.Stderr, "  send <conversation_id> <msg> [--not-before-ms N] [--idempotency-key K] - Send text to an existing conversation")
-		fmt.Fprintln(os.Stderr, "  send-group <phone1,phone2,...> <msg>       - Send group message (MMS)")
+		fmt.Fprintln(os.Stderr, "  send-group <phone1,phone2,...> <msg>       - Send group message (RCS or MMS)")
 		fmt.Fprintln(os.Stderr, "  import gchat <groups-dir> [--email you@]  - Import Google Chat Takeout")
 		fmt.Fprintln(os.Stderr, "  import gchat-conversation <messages.json> - Import single GChat conversation")
 		fmt.Fprintln(os.Stderr, "  import imessage [db-path]                 - Import iMessage (needs Full Disk Access)")

@@ -280,8 +280,8 @@ func TestV2SendGroupMessageKeepsLegacyConversationLookupButUsesV2Transport(t *te
 		RemoteMessageID: "remote-group-google",
 	}})
 	lookupCalls := 0
-	originalLookup := getOrCreateGoogleGroupConversationV2
-	getOrCreateGoogleGroupConversationV2 = func(_ *app.App, phones []string) (*gmproto.Conversation, error) {
+	originalLookup := getOrCreateGoogleGroupConversation
+	getOrCreateGoogleGroupConversation = func(_ *app.App, phones []string, _ string) (*gmproto.Conversation, error) {
 		lookupCalls++
 		want := []string{"+15551230000", "+15551230001"}
 		if len(phones) != len(want) || phones[0] != want[0] || phones[1] != want[1] {
@@ -294,7 +294,7 @@ func TestV2SendGroupMessageKeepsLegacyConversationLookupButUsesV2Transport(t *te
 			LastMessageTimestamp: 1_700_000_000_000_000,
 		}, nil
 	}
-	t.Cleanup(func() { getOrCreateGoogleGroupConversationV2 = originalLookup })
+	t.Cleanup(func() { getOrCreateGoogleGroupConversation = originalLookup })
 
 	result, err := sendGroupMessageHandler(harness.app, &harness.deps)(
 		context.Background(),

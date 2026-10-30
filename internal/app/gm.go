@@ -54,6 +54,29 @@ func NewContactNumbers(phones []string) []*gmproto.ContactNumber {
 	return numbers
 }
 
+// GetOrCreateGoogleGroup finds or creates the group thread for phones. When
+// every member can use RCS, Google answers CREATE_RCS with no conversation and
+// expects the request again with CreateRCSGroup set; otherwise the first answer
+// is the thread itself, an MMS group if any member lacks RCS. name titles a new
+// RCS group and may be empty.
+func GetOrCreateGoogleGroup(gm GMClient, phones []string, name string) (*gmproto.Conversation, error) {
+	request := &gmproto.GetOrCreateConversationRequest{Numbers: NewContactNumbers(phones)}
+	if name != "" {
+		request.RCSGroupName = &name
+	}
+	response, err := gm.GetOrCreateConversation(request)
+	if response.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
+		createRCSGroup := true
+		request.RCSGroupName = &name
+		request.CreateRCSGroup = &createRCSGroup
+		response, err = gm.GetOrCreateConversation(request)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return response.GetConversation(), nil
+}
+
 // ExtractSIMAndParticipant finds the current user's participant ID and SIM
 // payload from a conversation, falling back to the conversation's SIM card.
 func ExtractSIMAndParticipant(conv *gmproto.Conversation) (participantID string, sim *gmproto.SIMPayload) {

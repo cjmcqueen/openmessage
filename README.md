@@ -104,6 +104,8 @@ To let a client connect over HTTP, start OpenMessage with `--mcp-sse` (or `--web
 - Streamable HTTP: `http://127.0.0.1:7007/mcp`
 - SSE: `http://127.0.0.1:7007/mcp/sse`
 
+Use HTTP if the client needs to start conversations. The stdio shape is a transportless client of the running app, so it can reply in existing threads but can't create a group or a new SMS/RCS thread.
+
 ## Features
 
 - **Read messages** — full conversation history, search, media, replies, reactions, and route-aware conversation previews
@@ -134,7 +136,7 @@ To let a client connect over HTTP, start OpenMessage with `--mcp-sse` (or `--web
 | `send_message` | Send a direct text by platform. Defaults to SMS/RCS and also supports direct WhatsApp/Signal recipients |
 | `send_to_conversation` | Send a text reply directly to an existing conversation ID |
 | `send_media_to_conversation` | Send a local file attachment to an existing conversation ID |
-| `send_group_message` | Send to a group conversation by conversation ID |
+| `send_group_message` | Send to a group by phone numbers, creating it if needed: RCS when every member has RCS, otherwise MMS. Optional `group_name` titles a new RCS group |
 | `react_to_message` | Add, remove, or switch a reaction on an existing message |
 | `set_message_transcript` | Save or update a transcript for an audio/media message |
 | `list_conversations` | List recent conversations |

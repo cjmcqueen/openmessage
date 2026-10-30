@@ -41,7 +41,7 @@ func TestLegacySendToolDescriptorParity(t *testing.T) {
 		{
 			name: "send_group_message",
 			tool: sendGroupMessageTool(),
-			want: `{"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":false,"openWorldHint":true},"description":"Send a text message to a group conversation (MMS group). Creates the group if it doesn't exist.","inputSchema":{"type":"object","properties":{"message":{"description":"Message text to send","type":"string"},"phone_numbers":{"description":"JSON array of phone numbers with country code, e.g. [\"+15551234567\", \"+15559876543\"]","type":"string"}},"required":["phone_numbers","message"]},"name":"send_group_message"}`,
+			want: `{"annotations":{"readOnlyHint":false,"destructiveHint":false,"idempotentHint":false,"openWorldHint":true},"description":"Send a text message to a group conversation. Creates the group if it doesn't exist: an RCS group when every member has RCS, otherwise an MMS group.","inputSchema":{"type":"object","properties":{"group_name":{"description":"Title for a newly created RCS group. Ignored for MMS groups and existing groups.","type":"string"},"message":{"description":"Message text to send","type":"string"},"phone_numbers":{"description":"JSON array of phone numbers with country code, e.g. [\"+15551234567\", \"+15559876543\"]","type":"string"}},"required":["phone_numbers","message"]},"name":"send_group_message"}`,
 		},
 	}
 
