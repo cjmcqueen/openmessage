@@ -60,6 +60,7 @@ func (a *App) SendTextToConversation(conversationID, body string) (*db.Conversat
 			return conv, nil, err
 		}
 		resp, err := sendGoogleTextPayload(a, payload)
+		LogGoogleTextSend(a.Logger, "conversation", gmConv, payload, resp, err)
 		if err != nil {
 			if !a.HandleGoogleAuthExpiredError(err) {
 				a.RecordGoogleSendError(err)

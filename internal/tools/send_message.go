@@ -169,6 +169,7 @@ func sendMessageHandler(a *app.App, v2Options ...*V2Dependencies) server.ToolHan
 			myParticipantID, simPayload := app.ExtractSIMAndParticipant(conv)
 			payload := app.BuildSendPayload(conv.GetConversationID(), message, "", myParticipantID, simPayload)
 			resp, err := sendGoogleTextPayload(a, payload)
+			app.LogGoogleTextSend(a.Logger, "mcp:send_message", conv, payload, resp, err)
 			if err != nil {
 				if !a.HandleGoogleAuthExpiredError(err) {
 					a.RecordGoogleSendError(err)

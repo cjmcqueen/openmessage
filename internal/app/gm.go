@@ -70,6 +70,9 @@ func GetOrCreateGoogleGroup(gm GMClient, phones []string, name string) (*gmproto
 		request.RCSGroupName = &name
 		request.CreateRCSGroup = &createRCSGroup
 		response, err = gm.GetOrCreateConversation(request)
+		if err == nil {
+			NoteGoogleGroupCreated(response.GetConversation().GetConversationID())
+		}
 	}
 	if err != nil {
 		return nil, err

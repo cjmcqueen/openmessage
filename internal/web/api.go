@@ -1811,6 +1811,7 @@ func APIHandlerWithOptions(store *db.Store, cli *client.Client, logger zerolog.L
 			Msg("Sending message")
 
 		resp, err := cli.GM.SendMessage(payload)
+		app.LogGoogleTextSend(logger, "web", conv, payload, resp, err)
 		if err != nil {
 			authExpired := markGoogleAuthExpired(err)
 			if !authExpired {

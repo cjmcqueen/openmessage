@@ -103,6 +103,7 @@ func sendGroupMessageHandler(a *app.App, v2Options ...*V2Dependencies) server.To
 		myParticipantID, simPayload := app.ExtractSIMAndParticipant(conv)
 		payload := app.BuildSendPayload(conv.GetConversationID(), message, "", myParticipantID, simPayload)
 		resp, err := cli.GM.SendMessage(payload)
+		app.LogGoogleTextSend(a.Logger, "mcp:send_group_message", conv, payload, resp, err)
 		if err != nil {
 			if !a.HandleGoogleAuthExpiredError(err) {
 				a.RecordGoogleSendError(err)
