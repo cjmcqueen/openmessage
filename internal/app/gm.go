@@ -109,6 +109,12 @@ func GetOrCreateGoogleGroup(gm GMClient, phones []string, name string) (*gmproto
 
 // ExtractSIMAndParticipant finds the current user's participant ID and SIM
 // payload from a conversation, falling back to the conversation's SIM card.
+//
+// The sender is the conversation's DefaultOutgoingID, Google's participant ID
+// for this account (such as "2"), as mautrix-gmessages sends it. A brand-new
+// RCS group answers FAILURE_3 to a send that names the sender by phone number
+// instead, so the self participant's number is only a fallback for a
+// conversation that carries no DefaultOutgoingID.
 func ExtractSIMAndParticipant(conv *gmproto.Conversation) (participantID string, sim *gmproto.SIMPayload) {
 	for _, p := range conv.GetParticipants() {
 		if p.GetIsMe() {
@@ -118,6 +124,9 @@ func ExtractSIMAndParticipant(conv *gmproto.Conversation) (participantID string,
 			sim = p.GetSimPayload()
 			break
 		}
+	}
+	if outgoing := conv.GetDefaultOutgoingID(); outgoing != "" {
+		participantID = outgoing
 	}
 	if sim == nil {
 		if sc := conv.GetSimCard(); sc != nil {

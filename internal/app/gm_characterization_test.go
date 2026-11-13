@@ -64,7 +64,7 @@ func TestExtractSIMAndParticipantCharacterization(t *testing.T) {
 		wantSIM           *gmproto.SIMPayload
 	}{
 		{
-			name: "first self participant and its SIM win",
+			name: "without a default outgoing ID, the first self participant's number and SIM win",
 			conversation: &gmproto.Conversation{
 				Participants: []*gmproto.Participant{
 					{ID: &gmproto.SmallInfo{Number: "+10000000000"}, SimPayload: fallbackSIM},
@@ -103,6 +103,29 @@ func TestExtractSIMAndParticipantCharacterization(t *testing.T) {
 				SimCard:      &gmproto.SIMCard{SIMData: &gmproto.SIMData{SIMPayload: fallbackSIM}},
 			},
 			wantSIM: fallbackSIM,
+		},
+		{
+			name: "default outgoing ID names the sender, not the phone number",
+			conversation: &gmproto.Conversation{
+				DefaultOutgoingID: "2",
+				Participants: []*gmproto.Participant{{
+					ID:         &gmproto.SmallInfo{Number: "+15551234567", ParticipantID: "2"},
+					IsMe:       true,
+					SimPayload: participantSIM,
+				}},
+				SimCard: &gmproto.SIMCard{SIMData: &gmproto.SIMData{SIMPayload: fallbackSIM}},
+			},
+			wantParticipantID: "2",
+			wantSIM:           participantSIM,
+		},
+		{
+			name: "default outgoing ID is used even without a self participant",
+			conversation: &gmproto.Conversation{
+				DefaultOutgoingID: "2",
+				SimCard:           &gmproto.SIMCard{SIMData: &gmproto.SIMData{SIMPayload: fallbackSIM}},
+			},
+			wantParticipantID: "2",
+			wantSIM:           fallbackSIM,
 		},
 		{
 			name:         "nil conversation",
