@@ -59,23 +59,50 @@ func NewContactNumbers(phones []string) []*gmproto.ContactNumber {
 // expects the request again with CreateRCSGroup set; otherwise the first answer
 // is the thread itself, an MMS group if any member lacks RCS. name titles a new
 // RCS group and may be empty.
+//
+// Google sometimes answers without a thread: the RCS create fails, or the first
+// answer has no conversation. Then it asks once more as a plain MMS group, with
+// RCS turned off and no name, since MMS groups have no title. An error from the
+// first request is returned as is: the phone or session failed, not RCS.
 func GetOrCreateGoogleGroup(gm GMClient, phones []string, name string) (*gmproto.Conversation, error) {
 	request := &gmproto.GetOrCreateConversationRequest{Numbers: NewContactNumbers(phones)}
 	if name != "" {
 		request.RCSGroupName = &name
 	}
 	response, err := gm.GetOrCreateConversation(request)
+	if err != nil {
+		return nil, err
+	}
+	failure := fmt.Sprintf("no conversation in Google's answer (status %s)", response.GetStatus())
 	if response.GetStatus() == gmproto.GetOrCreateConversationResponse_CREATE_RCS {
 		createRCSGroup := true
 		request.RCSGroupName = &name
 		request.CreateRCSGroup = &createRCSGroup
 		response, err = gm.GetOrCreateConversation(request)
-		if err == nil {
+		if err == nil && response.GetConversation() != nil {
 			NoteGoogleGroupCreated(response.GetConversation().GetConversationID())
+			return response.GetConversation(), nil
 		}
+		if err != nil {
+			failure = fmt.Sprintf("RCS group create failed: %v", err)
+		} else {
+			failure = fmt.Sprintf("RCS group create returned no conversation (status %s)", response.GetStatus())
+		}
+	} else if response.GetConversation() != nil {
+		return response.GetConversation(), nil
 	}
+
+	createRCSGroup := false
+	mms := &gmproto.GetOrCreateConversationRequest{
+		Numbers:        NewContactNumbers(phones),
+		CreateRCSGroup: &createRCSGroup,
+	}
+	response, err = gm.GetOrCreateConversation(mms)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s; MMS fallback failed: %w", failure, err)
+	}
+	if response.GetConversation() == nil {
+		return nil, fmt.Errorf("%s; MMS fallback returned no conversation (status %s)", failure, response.GetStatus())
 	}
 	return response.GetConversation(), nil
 }
